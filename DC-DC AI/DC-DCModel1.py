@@ -8,6 +8,8 @@ from tensorflow.keras.layers import Dense
 from sklearn.model_selection import train_test_split
 from colorama import Fore, Style
 
+print(tf.config.list_physical_devices('GPU'))
+
 def printc(message, color):
     match color:
         case "green":
@@ -93,8 +95,8 @@ print("X_train shape:", X_train.shape)
 
 # Define a simple neural network
 model = Sequential([
-    Dense(64, activation='relu', input_shape=(4,)),  # 4 features (2 from input, 2 constants from columns 3 and 4)
-    Dense(32, activation='relu'),
+    Dense(15, activation='relu', input_shape=(4,)),  # 4 features (2 from input, 2 constants from columns 3 and 4)
+    Dense(10, activation='relu'),
     Dense(1)  # Output layer
 ])
 
@@ -104,7 +106,7 @@ printc("Compiling model...", "yellow")
 model.compile(optimizer='adam', loss='mse')
 
 # Train the model
-model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test))
+model.fit(X_train, y_train, epochs=3, batch_size=32, validation_data=(X_test, y_test))
 printc("Complete", "green")
 
 printc("Testing...", "yellow")
