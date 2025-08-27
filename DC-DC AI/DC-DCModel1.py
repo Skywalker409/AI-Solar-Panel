@@ -3,6 +3,7 @@ import numpy as np
 import os
 import sys
 import tensorflow as tf
+import matplotlib.pyplot as plt
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from sklearn.model_selection import train_test_split
@@ -14,17 +15,14 @@ def printc(message, color):
     match color:
         case "green":
             print(Fore.GREEN + message + Style.RESET_ALL)
-            return 1
         case "red":
             print(Fore.RED + message + Style.RESET_ALL)
-            return 1
         case "yellow":
             print(Fore.YELLOW + message + Style.RESET_ALL)
 
 # Function to convert strings or lists to float
 def convert_to_float(val):
     try:
-        # If the value is a string representation of a list (e.g. '[1.69497325e-05]')
         if isinstance(val, str) and val.startswith('[') and val.endswith(']'):
             val = val.strip('[]')  # Remove brackets
         return float(val)
@@ -32,41 +30,38 @@ def convert_to_float(val):
         return np.nan  # Return NaN if conversion fails
 
 # Path to the folder with CSV files
-folder_path = r'C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\GeneratedData'
+folder_path = r'C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\GeneratedDataV3'
 printc("Starting program", "green")
 
 # Placeholder for training data
 X = []
 y = []
-progressTot = 311
+progressTot = sum(1 for f in os.listdir(folder_path) if f.endswith('.csv'))
 index = 0
 printc("Parsing through files...", "yellow")
 
 # Iterate through CSV files
 for filename in os.listdir(folder_path):
     if filename.endswith('.csv'):
-        
-        #Progress Bar
+        # Progress Bar
         percent = index / progressTot * 100
         index += 1
         bar = 'X' * int(percent / 2) + '-' * (50 - int(percent / 2))
         sys.stdout = sys.__stdout__
-        sys.stdout.write(f'\r|{bar}| {percent:.2f}%   adding file: ' + filename)  
+        sys.stdout.write(f'\r|{bar}| {percent:.2f}%   adding file: ' + filename)
         sys.stdout.flush()
 
-        #Data pull
+        # Data pull
         file_path = os.path.join(folder_path, filename)
         data = pd.read_csv(file_path)
-        input_data = data.iloc[1:, [0, 1, 2, 3]].values  # Get entire 3rd and 4th columns
+        input_data = data.iloc[1:, [0, 1, 2, 3]].values  # First 4 columns after header
 
-        # Convert the values to float
+        # Convert to float
         input_data = np.array([[convert_to_float(cell) for cell in row] for row in input_data])
-
-        # Ensure the data is numeric
         input_data = input_data.astype(np.float32)
 
         # Extract output (second value from the fifth column)
-        output = convert_to_float(data.iloc[1, 4])  # Convert to float
+        output = convert_to_float(data.iloc[1, 4])
 
         # Store the data
         X.append(input_data)
@@ -80,43 +75,54 @@ X = np.vstack(X)
 y = np.hstack(y)
 printc("Complete", "green")
 
-# Check if there are any NaN or infinite values in X or y
+# Check for bad values
 if np.any(np.isnan(X)) or np.any(np.isnan(y)):
     printc("Warning: Found NaN values in X or y", "red")
 if np.any(np.isinf(X)) or np.any(np.isinf(y)):
     printc("Warning: Found infinite values in X or y", "red")
 
-# Split data into training and testing sets (80/20 split)
+# Split data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Ensure the input shape is correct
 print("X_train shape:", X_train.shape)
 
-# Define a simple neural network
+# Define model
 model = Sequential([
-    Dense(15, activation='relu', input_shape=(4,)),  # 4 features (2 from input, 2 constants from columns 3 and 4)
+    Dense(15, activation='relu', input_shape=(4,)),
     Dense(10, activation='relu'),
-    Dense(1)  # Output layer
+    Dense(1)
 ])
 
 printc("Compiling model...", "yellow")
-
-# Compile the model
 model.compile(optimizer='adam', loss='mse')
 
-# Train the model
-model.fit(X_train, y_train, epochs=3, batch_size=32, validation_data=(X_test, y_test))
-printc("Complete", "green")
+# Train the model and store training history
+printc("Training model...", "yellow")
+history = model.fit(X_train, y_train, epochs=15, batch_size=32, validation_data=(X_test, y_test))
+printc("Training complete", "green")
 
+# Evaluate
 printc("Testing...", "yellow")
-
-# Evaluate the model on the test set
-loss = model.evaluate(X_test, y_test)   
-printc("Complete", "green")
-
+loss = model.evaluate(X_test, y_test)
+printc("Testing complete", "green")
 print("Test Loss:", loss)
 
-# Save the model
-model.save('trained_model.h5')
+# Save model
+name = 'DC-DemoModel_2.1.h5'
+model.save(name)
+printc(f"Model saved to {name}", "green")
+
+# Plot training & validation loss
+printc("Plotting loss curve...", "yellow")
+plt.figure()
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title('Model Loss vs Epochs')
+plt.ylabel('Loss (MSE)')
+plt.xlabel('Epoch')
+plt.legend(loc='upper right')
+plt.grid(True)
+plt.tight_layout()
+plt.savefig("improvements.png")
+plt.show()
 
 printc("All finished!", "green")

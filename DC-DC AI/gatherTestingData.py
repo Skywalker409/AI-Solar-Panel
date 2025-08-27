@@ -3,88 +3,104 @@ from colorama import Fore, Style
 import sys
 import numpy as np
 import csv
-import os  # Added for path handling
+import os
+from tqdm import tqdm  # ✅ tqdm progress bar
 
-# Define the folder path and ensure it's valid
-try:
-    path = r"C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\testingData"
-    os.makedirs(path, exist_ok=True)  # Create folder if it doesn't exist
-except Exception as e:
-    print("Failed to find path. \n Error: \n" + str(e))
-    sys.exit(1)  # Exit program if path creation fails
+# --- Helper function to clean arrays ---
+def clean_vout_iout(vout_data, iout_data):
+    """
+    Remove rows where Vout or Iout are NaN or Inf.
+    Returns cleaned arrays.
+    """
+    vout_data = np.array(vout_data, dtype=np.float64).flatten()
+    iout_data = np.array(iout_data, dtype=np.float64).flatten()
+    mask = np.isfinite(vout_data) & np.isfinite(iout_data)
+    return vout_data[mask], iout_data[mask]
 
-# Start MATLAB engine
+# --- Define the folder path ---
+path = r"C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\testingData"
+os.makedirs(path, exist_ok=True)
+
+# Clear folder
+for file in os.listdir(path):
+    file_path = os.path.join(path, file)
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+
+# --- Start MATLAB engine ---
 eng = matlab.engine.start_matlab()
-
-# Define Simulink model name
 model_name = "panelSim"
 
-# Load the Simulink model
-MinIrradiance = 1
-MaxIrradiance = 2502
-IrrInc = 333
-
+# --- Parameter ranges ---
+MinIrradiance = 101
+MaxIrradiance = 2001
+IrrInc = 130
 MinTemp = -25
-MaxTemp = 35
-TempInc = 23
+MaxTemp = 55
+TempInc = 7
 
-progressTot = 2500
+# --- Total iterations for tqdm ---
+total_iters = len(range(MinIrradiance, MaxIrradiance, IrrInc)) * len(range(MinTemp, MaxTemp, TempInc))
 
 print(Fore.YELLOW + "Running Simulations... Press Ctrl+C to stop anytime." + Style.RESET_ALL)
 
 try:
-    for irradiance in range(MinIrradiance, MaxIrradiance, IrrInc):
-        percent = irradiance / progressTot * 100
-        bar = 'X' * int(percent / 2) + '-' * (50 - int(percent / 2))
-        sys.stdout = sys.__stdout__
-        sys.stdout.write(f'\r|{bar}| {percent:.2f}%')  # '\r' moves the cursor back to the start of the line
-        sys.stdout.flush()
-        sys.stdout = open(os.devnull, 'w')
+    with tqdm(total=total_iters, desc="Simulations", unit="run") as pbar:
+        for irradiance in range(MinIrradiance, MaxIrradiance, IrrInc):
+            for temperature in range(MinTemp, MaxTemp, TempInc):
+                try:
+                    # Load Simulink model
+                    eng.load_system(model_name)
+                    eng.workspace["irradiance"] = irradiance
+                    eng.workspace["temp"] = temperature
 
-        for temperature in range(MinTemp, MaxTemp, TempInc):
-            try:
-                # Load Simulink model
-                eng.load_system(model_name)
+                    # Run simulation
+                    eng.sim(model_name, nargout=0)
 
-                # Set input values in MATLAB workspace
-                eng.workspace["irradiance"] = irradiance
-                eng.workspace["temp"] = temperature
+                    # Extract simulation data
+                    vout_data = np.array(eng.eval("Vout")).flatten()
+                    iout_data = np.array(eng.eval("Iout")).flatten()
 
-                # Run simulation
-                eng.sim(model_name, nargout=0)
+                    # --- Clean vout/iout from NaN or Inf ---
+                    vout_data, iout_data = clean_vout_iout(vout_data, iout_data)
 
-                # Extract simulation data
-                vout_data = np.array(eng.eval("Vout"))  # Convert MATLAB arrays to NumPy arrays
-                iout_data = np.array(eng.eval("Iout"))
-                power = vout_data * iout_data  # Element-wise multiplication
+                    # Skip if no valid data remains
+                    if vout_data.size == 0 or iout_data.size == 0:
+                        print(Fore.RED + f"⚠️ No valid data after cleaning temp={temperature}, irr={irradiance}" + Style.RESET_ALL)
+                        pbar.update(1)
+                        continue
 
-                # Find maximum power and corresponding voltage
-                maxpower = max(power)
-                max_index = np.argmax(power)  # Use NumPy's argmax for efficiency
-                MaxVoltage = vout_data[max_index]
+                    # Calculate power
+                    power = vout_data * iout_data
 
-                # Prepare data for CSV export
-                data = [vout_data,iout_data,irradiance,temperature,MaxVoltage]
+                    # Find maximum power and corresponding voltage
+                    max_index = int(np.argmax(power))
+                    maxpower = float(power[max_index])
+                    MaxVoltage = float(vout_data[max_index])
 
-                # Write data to a CSV file
-                filename = f"temp_{temperature}_irr_{irradiance}.csv"
-                filepath = os.path.join(path, filename)
+                    # 🚨 Hard stop check if NaN or Inf
+                    if not np.isfinite(maxpower) or not np.isfinite(MaxVoltage):
+                        print(Fore.RED + f"\n🚨 ERROR: Invalid MaxPower/MaxVoltage detected temp={temperature}, irr={irradiance}. Stopping program." + Style.RESET_ALL)
+                        eng.quit()
+                        sys.exit(1)
 
-                with open(filepath, "w", newline="") as file:
-                    writer = csv.writer(file)
-                    writer.writerow(["Vout", "Iout", "Irradiance", "Temperature", "MaxVoltage"])  # Headers
-                    for v, i in zip(vout_data, iout_data):  # Assuming vout_data and iout_data are of equal length
-                        writer.writerow([v, i, irradiance, temperature, MaxVoltage])
+                    # --- Save to CSV ---
+                    filename = f"temp_{temperature}_irr_{irradiance}.csv"
+                    filepath = os.path.join(path, filename)
+                    with open(filepath, "w", newline="") as file:
+                        writer = csv.writer(file)
+                        writer.writerow(["Vout", "Iout", "Irradiance", "Temperature", "MaxVoltage", "MaxPower"])
+                        for v, i in zip(vout_data, iout_data):
+                            writer.writerow([float(v), float(i), irradiance, temperature, MaxVoltage, maxpower])
 
+                except Exception as e:
+                    print(Fore.RED + f"Error during simulation for temp={temperature}, irr={irradiance}: {e}" + Style.RESET_ALL)
 
-                    
-            except Exception as e:
-                print(Fore.RED + f"Error during simulation for temp={temperature}, irr={irradiance}: {e}" + Style.RESET_ALL)
+                pbar.update(1)
 
 except KeyboardInterrupt:
     print(Fore.RED + "\nSimulation interrupted by user. Exiting program..." + Style.RESET_ALL)
 
 finally:
-    # Close MATLAB engine
     eng.quit()
     print(Fore.GREEN + "MATLAB engine closed. Program terminated." + Style.RESET_ALL)

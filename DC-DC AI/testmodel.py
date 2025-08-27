@@ -42,7 +42,7 @@ printc("Starting program", "green")
 # Placeholder for training data
 X = []
 y = []
-progressTot = 23
+progressTot = len([f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))])
 index = 0
 printc("Parsing through files...", "yellow")
 
@@ -97,7 +97,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.8, random_
 print("X_train shape:", X_train.shape)
 
 # Define a simple neural network
-model = load_model('trained_model.h5', compile=False)  # Load without compiling
+model = load_model('trained_model_tensor.h5', compile=False)  # Load without compiling
 model.compile(optimizer='adam', loss=MeanSquaredError())  # Recompile with explicit loss function
 
 
