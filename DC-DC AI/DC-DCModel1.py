@@ -30,7 +30,7 @@ def convert_to_float(val):
         return np.nan  # Return NaN if conversion fails
 
 # Path to the folder with CSV files
-folder_path = r'C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\GeneratedDataV3'
+folder_path = r'C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\DataV4'
 printc("Starting program", "green")
 
 # Placeholder for training data
@@ -97,7 +97,7 @@ model.compile(optimizer='adam', loss='mse')
 
 # Train the model and store training history
 printc("Training model...", "yellow")
-history = model.fit(X_train, y_train, epochs=15, batch_size=32, validation_data=(X_test, y_test))
+history = model.fit(X_train, y_train, epochs=30, batch_size=1034, validation_data=(X_test, y_test))
 printc("Training complete", "green")
 
 # Evaluate
@@ -107,7 +107,7 @@ printc("Testing complete", "green")
 print("Test Loss:", loss)
 
 # Save model
-name = 'DC-DemoModel_2.1.h5'
+name = 'DC-DemoModel_2.3.h5'
 model.save(name)
 printc(f"Model saved to {name}", "green")
 

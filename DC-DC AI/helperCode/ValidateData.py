@@ -3,7 +3,7 @@ import os
 from tqdm import tqdm
 
 # --- Configuration ---
-folder_path = r"C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\testingData"  # Change as needed
+folder_path = r"C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\DataV4"  # Change as needed
 
 # Get all CSV files in the folder
 csv_files = [f for f in os.listdir(folder_path) if f.endswith(".csv")]

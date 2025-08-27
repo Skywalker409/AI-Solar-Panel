@@ -1,0 +1,16 @@
+Model Descriptions:
+
+Model 2.1: This data is the first gen that has a much more fine training data set, with
+irradience increments at 100 per and temperature increments at 5 per. 
+
+Model 2.2: This data was updated such that the ranges were increased. Data range was changed to
+1 -> 2000 irradience. This allows for the model to handle when the enviroment gets dark. 
+
+Model 2.3: Changed number of epochs to train model from 15 to 30 to increase accuracy. 
+
+Main notes:
+There are still many problems when the irradience is far to low. I believe this is due to 2 reasons,
+the simulation freaks out on edge cases, and the model is having difficulty with near 0 values. 
+
+It might be worth while to have code such that if the irradience is too low, then we switch to manual
+optimization. 

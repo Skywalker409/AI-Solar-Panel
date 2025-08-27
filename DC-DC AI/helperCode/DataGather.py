@@ -18,7 +18,7 @@ def clean_vout_iout(vout_data, iout_data):
     return vout_data[mask], iout_data[mask]
 
 # --- Define the folder path ---
-path = r"C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\GeneratedDataV3"
+path = r"C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\DataV4"
 os.makedirs(path, exist_ok=True)
 
 # Clear folder

@@ -18,7 +18,7 @@ def clean_vout_iout(vout_data, iout_data):
     return vout_data[mask], iout_data[mask]
 
 # --- Define the folder path ---
-path = r"C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\testingData"
+path = r"C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\TestDataV2"
 os.makedirs(path, exist_ok=True)
 
 # Clear folder
@@ -32,7 +32,7 @@ eng = matlab.engine.start_matlab()
 model_name = "panelSim"
 
 # --- Parameter ranges ---
-MinIrradiance = 101
+MinIrradiance = 1
 MaxIrradiance = 2001
 IrrInc = 130
 MinTemp = -25

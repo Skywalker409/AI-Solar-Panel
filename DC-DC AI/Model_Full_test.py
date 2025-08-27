@@ -7,7 +7,7 @@ from tensorflow.keras.losses import MeanSquaredError
 from tqdm import tqdm
 
 # --- Load trained model ---
-model = load_model("DC-DemoModel_2.1.h5", compile=False)
+model = load_model("./TestResults/GoodModels/DC-DemoModel_2.3.h5", compile=False)
 model.compile(optimizer="adam", loss=MeanSquaredError())
 
 # --- Helper function to convert bracketed strings like "[0.123]" ---
@@ -21,7 +21,7 @@ def convert_to_float(val):
         return np.nan
 
 # --- Path to testing folder ---    
-folder_path = r"C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\testingData"
+folder_path = r"C:\Users\lukel\OneDrive\Desktop\CAPSTONE\AI-Solar-Panel\DC-DC AI\TestDataV2"
 
 # Get list of CSV files
 csv_files = [f for f in os.listdir(folder_path) if f.endswith(".csv")]
